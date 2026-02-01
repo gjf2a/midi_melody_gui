@@ -5,6 +5,30 @@ use eframe::egui::{self, FontDefinitions};
 pub mod melody_renderer;
 pub mod recorder;
 
+#[macro_export]
+macro_rules! load_font {
+    ($fonts:ident, $filename:literal) => {{
+        let name = $filename
+            .split("/")
+            .last()
+            .unwrap()
+            .split(".")
+            .next()
+            .unwrap()
+            .to_owned();
+        println!("Loading font {name} from {}.", $filename);
+        $fonts.font_data.insert(
+            name.clone(),
+            eframe::egui::FontData::from_static(include_bytes!($filename)).into(),
+        );
+        $fonts
+            .families
+            .get_mut(&eframe::egui::FontFamily::Proportional)
+            .unwrap()
+            .push(name);
+    }};
+}
+
 pub fn setup_font(filename: &str, cc: &eframe::CreationContext<'_>) -> anyhow::Result<()> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let file_path = PathBuf::from(manifest_dir).join(filename);
