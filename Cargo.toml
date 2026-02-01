@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+music_analyzer_generator = {git = "https://github.com/gjf2a/music_analyzer_generator"}
+midi_note_recorder = {git = "https://github.com/gjf2a/midi_note_recorder"}
+midi_fundsp = "0.7.1"
+midir = "0.10.3"
+eframe = "0.33.3"
+bare_metal_modulo = "1.2.5"
+crossbeam-queue = "0.3.12"
+crossbeam-utils = "0.8.21"
+enum-iterator = "2.3.0"
+anyhow = "1.0.100"
