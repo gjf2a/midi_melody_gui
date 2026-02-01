@@ -16,7 +16,7 @@ use music_analyzer_generator::{
     scales::{RootedScale, ScaleMode},
 };
 
-const MAIN_MELODY_SCALING: f32 = 0.8;
+const Y_PER_PITCH: f32 = 5.28;
 const MIDDLE_C: u8 = 60;
 const STAFF_PITCH_WIDTH: u8 = 19;
 const LOWEST_STAFF_PITCH: u8 = MIDDLE_C - STAFF_PITCH_WIDTH;
@@ -27,6 +27,7 @@ const X_OFFSET: f32 = BORDER_SIZE * 5.0;
 const ACCIDENTAL_SIZE_MULTIPLIER: f32 = 5.0;
 const KEY_SIGNATURE_OFFSET: f32 = 28.0;
 const NUM_STAFF_LINES: u8 = 5;
+const NUM_STAFF_ROWS: u8 = (NUM_STAFF_LINES * 2 + 1) * 2;
 const LINE_STROKE: Stroke = Stroke {
     width: 1.0,
     color: Color32::BLACK,
@@ -135,7 +136,7 @@ impl KeySignature {
         let start1 = Self::constrain_up(
             c_major
                 .diatonic_steps_between(middle_c, middle_c + self.notes[0].natural_pitch())
-                .unwrap(),
+                .0,
         );
         let mut frontier = [start1, Self::constrain_up((start1 as i16 + offset) as u8)];
         let mut result = vec![];
@@ -167,49 +168,70 @@ pub struct MelodyRenderer {
     y_per_pitch: f32,
     y_middle_c: f32,
     hi: u8,
+    lo: u8,
+}
+
+fn round_up(steps_extra: (u8, u8)) -> u8 {
+    let (mut steps, extra) = steps_extra;
+    if extra > 0 {
+        steps += 1
+    };
+    steps
 }
 
 impl MelodyRenderer {
-    pub fn render(ui: &mut Ui, melodies: &Vec<(Melody, Color32)>) {
-        let size = Vec2::new(
-            ui.available_width(),
-            ui.available_height() * MAIN_MELODY_SCALING,
-        );
-        if melodies.len() > 0 && melodies.iter().any(|(m, _)| m.len() > 0) {
-            let (response, painter) = ui.allocate_painter(size, Sense::hover());
-            let scale = melodies[0].0.highest_weight_scale();
-            let (lo, hi) = Self::min_max_staff(&scale, melodies);
-            let num_diatonic_pitches = 1 + scale.diatonic_steps_between(lo, hi).unwrap();
-            let y_per_pitch = ((response.rect.max.y - response.rect.min.y) - BORDER_SIZE * 2.0)
-                / num_diatonic_pitches as f32;
-            let y_border = Y_OFFSET + response.rect.min.y;
-            let sig = KeySignature::from(&scale);
-            let scale_hi = scale.round_up(hi);
-            if let Some(steps) = scale.diatonic_steps_to_middle_c(scale_hi) {
-                let y_middle_c = y_border + y_per_pitch * steps as f32;
-                let renderer = MelodyRenderer {
-                    hi,
-                    scale,
-                    y_per_pitch,
-                    x_range: response.rect.min.x + BORDER_SIZE..=response.rect.max.x - BORDER_SIZE,
-                    //y_range: response.rect.min.y + BORDER_SIZE..=response.rect.max.y - BORDER_SIZE,
-                    sig,
-                    y_middle_c,
-                };
-                let y_treble = y_border + y_per_pitch * renderer.space_above_staff();
-                renderer.draw_staff(&painter, Clef::Treble, y_treble);
-                let y_bass = renderer.y_middle_c + renderer.staff_line_space();
-                renderer.draw_staff(&painter, Clef::Bass, y_bass);
-                for (melody, color) in melodies.iter().rev() {
-                    renderer.draw_melody(&painter, melody, *color);
+    pub fn min_max_pitches_from(melodies: &Vec<(Melody, Color32)>) -> Option<(u8, u8)> {
+        let mut result = None;
+        for (melody, _) in melodies.iter() {
+            if let Some((lo, hi)) = melody.min_max_pitches() {
+                if let Some((best_lo, best_hi)) = result {
+                    result = Some((min(best_lo, lo), max(best_hi, hi)));
+                } else {
+                    result = Some((lo, hi));
                 }
+            }
+        }
+        result
+    }
+
+    pub fn render(ui: &mut Ui, melodies: &Vec<(Melody, Color32)>) {
+        if let Some((lo, hi)) = Self::min_max_pitches_from(melodies) {
+            let scale = melodies[0].0.highest_weight_scale();
+            let lo = min(LOWEST_STAFF_PITCH, scale.round_down(lo));
+            let hi = max(HIGHEST_STAFF_PITCH, scale.round_up(hi));
+            let num_diatonic_pitches = round_up(scale.diatonic_steps_between(lo, hi)) + 1;
+            let middle_c_steps = round_up(scale.diatonic_steps_to_middle_c(hi));
+            let target_height = Y_PER_PITCH * num_diatonic_pitches as f32 + BORDER_SIZE * 2.0;
+            println!(
+                "{num_diatonic_pitches} ({lo} {hi}) target: {target_height} available: {}",
+                ui.available_height()
+            );
+            let height = if target_height < ui.available_height() {
+                target_height
             } else {
-                println!(
-                    "middle-c failed: scale: {} {:?} (hi: {scale_hi})",
-                    scale.root_name(),
-                    scale.mode()
-                );
-                println!("{:?}", melodies[0].0);
+                ui.available_height()
+            };
+            let size = Vec2::new(ui.available_width(), height);
+            let (response, painter) = ui.allocate_painter(size, Sense::hover());
+            println!("response: {:?}", response.rect);
+            let sig = KeySignature::from(&scale);
+            let y_border = Y_OFFSET + response.rect.min.y;
+            let y_middle_c = y_border + Y_PER_PITCH * middle_c_steps as f32;
+            let renderer = MelodyRenderer {
+                lo,
+                hi,
+                scale,
+                y_per_pitch: Y_PER_PITCH,
+                x_range: response.rect.min.x + BORDER_SIZE..=response.rect.max.x - BORDER_SIZE,
+                sig,
+                y_middle_c,
+            };
+            let y_treble = y_border + Y_PER_PITCH * Self::space_above_staff(&renderer.scale, hi);
+            renderer.draw_staff(&painter, Clef::Treble, y_treble);
+            let y_bass = renderer.y_middle_c + renderer.staff_line_space();
+            renderer.draw_staff(&painter, Clef::Bass, y_bass);
+            for (melody, color) in melodies.iter().rev() {
+                renderer.draw_melody(&painter, melody, *color);
             }
         }
     }
@@ -218,13 +240,16 @@ impl MelodyRenderer {
         self.y_per_pitch * 2.0
     }
 
-    fn space_above_staff(&self) -> f32 {
-        let highest_staff = self.scale.round_up(HIGHEST_STAFF_PITCH as u8);
-        let highest_pitch = self.scale.round_up(self.hi as u8);
-        1.0 + self
-            .scale
-            .diatonic_steps_between(highest_staff, highest_pitch)
-            .unwrap() as f32
+    fn space_above_staff(scale: &RootedScale, hi: u8) -> f32 {
+        let highest_staff = scale.round_up(HIGHEST_STAFF_PITCH);
+        let highest_pitch = scale.round_up(hi);
+        1.0 + round_up(scale.diatonic_steps_between(highest_staff, highest_pitch)) as f32
+    }
+
+    fn space_below_staff(scale: &RootedScale, lo: u8) -> f32 {
+        let lowest_staff = scale.round_up(LOWEST_STAFF_PITCH);
+        let lowest_pitch = scale.round_up(lo);
+        1.0 + round_up(scale.diatonic_steps_between(lowest_staff, lowest_pitch)) as f32
     }
 
     fn min_x(&self) -> f32 {
@@ -348,11 +373,8 @@ impl<'a> IncrementalNoteRenderer<'a> {
     }
 
     fn show_note(&self, x: f32, y: f32) {
-        self.painter.circle_filled(
-            Pos2 { x, y },
-            self.renderer.y_per_pitch / 2.0,
-            self.note_color,
-        );
+        self.painter
+            .circle_filled(Pos2 { x, y }, self.renderer.y_per_pitch, self.note_color);
         if let Some(auxiliary_symbol) = self.auxiliary_symbol {
             let x = x + self.renderer.staff_line_space();
             self.renderer
@@ -377,9 +399,7 @@ fn staff_position(
         };
         (pitch, acc)
     };
-    let mut steps = scale
-        .diatonic_steps_between(scale.middle_c(), pitch)
-        .unwrap() as i16;
+    let mut steps = round_up(scale.diatonic_steps_between(scale.middle_c(), pitch)) as i16;
     if pitch < scale.middle_c() {
         steps = -steps;
     }

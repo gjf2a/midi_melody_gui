@@ -15,7 +15,11 @@ pub fn setup_font(filename: &str, cc: &eframe::CreationContext<'_>) -> anyhow::R
         name.clone(),
         eframe::egui::FontData::from_owned(bytes).into(),
     );
-    fonts.families.get_mut(&eframe::egui::FontFamily::Proportional).unwrap().push(name);
+    fonts
+        .families
+        .get_mut(&eframe::egui::FontFamily::Proportional)
+        .unwrap()
+        .push(name);
     cc.egui_ctx.set_fonts(fonts);
     Ok(())
 }

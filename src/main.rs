@@ -2,9 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
 use enum_iterator::{Sequence, all};
-use midi_fundsp::{sound_builders::ProgramTable, sounds::favorites, io::Speaker};
+use midi_fundsp::{io::Speaker, sound_builders::ProgramTable, sounds::favorites};
 use midi_melody_gui::{
-    melody_renderer::MelodyRenderer, recorder::{Recorder, setup_threads}, render_synth_sounds, setup_font
+    melody_renderer::MelodyRenderer,
+    recorder::{Recorder, setup_threads},
+    render_synth_sounds, setup_font,
 };
 use music_analyzer_generator::analyzer::Melody;
 
@@ -63,7 +65,7 @@ impl eframe::App for MainApp {
                 Mode::Show => {
                     let recorder = self.recorder.lock().unwrap();
                     if recorder.len() > 0 {
-                        let melody = Melody::from(&recorder[recorder.len() -1]);
+                        let melody = Melody::from(&recorder[recorder.len() - 1]);
                         MelodyRenderer::render(ui, &vec![(melody, Color32::BLACK)]);
                     }
                     ctx.request_repaint_after_secs(FRAME_INTERVAL);
