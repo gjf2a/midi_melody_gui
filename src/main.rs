@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use eframe::egui::{self, Color32, FontDefinitions, Pos2, Vec2, Visuals};
+use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
 use enum_iterator::{Sequence, all};
 use midi_fundsp::{sound_builders::ProgramTable, sounds::favorites, io::Speaker};
 use midi_melody_gui::{
-    load_font, melody_renderer::MelodyRenderer, recorder::{Recorder, setup_threads}, render_synth_sounds, setup_font
+    melody_renderer::MelodyRenderer, recorder::{Recorder, setup_threads}, render_synth_sounds, setup_font
 };
 use music_analyzer_generator::analyzer::Melody;
 
@@ -75,10 +75,7 @@ impl eframe::App for MainApp {
 
 impl MainApp {
     fn new(cc: &eframe::CreationContext<'_>) -> anyhow::Result<Self> {
-        //setup_font("bravura/BravuraText.otf", cc)?;
-        let mut fonts = FontDefinitions::default();
-        load_font!(fonts, "../bravura/BravuraText.otf");
-        cc.egui_ctx.set_fonts(fonts);
+        setup_font("bravura/BravuraText.otf", cc)?;
         let synth_sounds = favorites();
         Ok(Self {
             recorder: setup_threads(synth_sounds.clone())?,
