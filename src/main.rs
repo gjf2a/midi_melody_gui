@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use bare_metal_modulo::{MNum, ModNum};
 use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
 use midi_fundsp::{io::Speaker, sound_builders::ProgramTable, sounds::favorites};
 use midi_melody_gui::{
@@ -32,6 +33,7 @@ struct MainApp {
     recorder: Arc<Mutex<Recorder>>,
     synth_sounds: ProgramTable,
     synth_sound: usize,
+    current_recording: ModNum<usize>,
 }
 
 impl eframe::App for MainApp {
@@ -41,9 +43,10 @@ impl eframe::App for MainApp {
             let heading = format!("MIDI Melody GUI ({})", self.port_name());
             ui.heading(heading);
             self.render_settings(ui);
+            self.render_melody_choice(ui);
             let recorder = self.recorder.lock().unwrap();
             if recorder.len() > 0 {
-                let melody = Melody::from(&recorder[recorder.len() - 1]);
+                let melody = Melody::from(&recorder[self.current_recording.a()]);
                 MelodyRenderer::render(ui, &vec![(melody, Color32::BLACK)]);
             }
             ctx.request_repaint_after_secs(FRAME_INTERVAL);
@@ -59,11 +62,30 @@ impl MainApp {
             recorder: setup_threads(synth_sounds.clone())?,
             synth_sounds,
             synth_sound: 0,
+            current_recording: ModNum::new(0, 1),
         })
     }
 
     fn port_name(&self) -> String {
         self.recorder.lock().unwrap().input_port_name().to_string()
+    }
+
+    fn render_melody_choice(&mut self, ui: &mut egui::Ui) {
+        let recorder = self.recorder.lock().unwrap();
+        if recorder.len() > 0 {
+            if recorder.len() > self.current_recording.m() {
+                self.current_recording = ModNum::new(recorder.len() - 1, recorder.len());
+            }
+            ui.horizontal(|ui| {
+                if ui.button("<").clicked() {
+                    self.current_recording -= 1;
+                }
+                ui.label(format!("Recording {}/{}", self.current_recording.a() + 1, recorder.len()));
+                if ui.button(">").clicked() {
+                    self.current_recording += 1;
+                }
+            });
+        }
     }
 
     fn render_settings(&mut self, ui: &mut egui::Ui) {
