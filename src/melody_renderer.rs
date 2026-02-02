@@ -27,7 +27,6 @@ const X_OFFSET: f32 = BORDER_SIZE * 5.0;
 const ACCIDENTAL_SIZE_MULTIPLIER: f32 = 5.0;
 const KEY_SIGNATURE_OFFSET: f32 = 28.0;
 const NUM_STAFF_LINES: u8 = 5;
-const NUM_STAFF_ROWS: u8 = (NUM_STAFF_LINES * 2 + 1) * 2;
 const LINE_STROKE: Stroke = Stroke {
     width: 1.0,
     color: Color32::BLACK,
@@ -167,8 +166,6 @@ pub struct MelodyRenderer {
     //y_range: RangeInclusive<f32>,
     y_per_pitch: f32,
     y_middle_c: f32,
-    hi: u8,
-    lo: u8,
 }
 
 fn round_up(steps_extra: (u8, u8)) -> u8 {
@@ -218,8 +215,6 @@ impl MelodyRenderer {
             let y_border = Y_OFFSET + response.rect.min.y;
             let y_middle_c = y_border + Y_PER_PITCH * middle_c_steps as f32;
             let renderer = MelodyRenderer {
-                lo,
-                hi,
                 scale,
                 y_per_pitch: Y_PER_PITCH,
                 x_range: response.rect.min.x + BORDER_SIZE..=response.rect.max.x - BORDER_SIZE,
@@ -244,12 +239,6 @@ impl MelodyRenderer {
         let highest_staff = scale.round_up(HIGHEST_STAFF_PITCH);
         let highest_pitch = scale.round_up(hi);
         1.0 + round_up(scale.diatonic_steps_between(highest_staff, highest_pitch)) as f32
-    }
-
-    fn space_below_staff(scale: &RootedScale, lo: u8) -> f32 {
-        let lowest_staff = scale.round_up(LOWEST_STAFF_PITCH);
-        let lowest_pitch = scale.round_up(lo);
-        1.0 + round_up(scale.diatonic_steps_between(lowest_staff, lowest_pitch)) as f32
     }
 
     fn min_x(&self) -> f32 {
@@ -329,18 +318,6 @@ impl MelodyRenderer {
         let x2 = x + x_offset;
         let y = self.y_middle_c - staff_offset as f32 * self.y_per_pitch;
         painter.line_segment([Pos2 { x: x1, y }, Pos2 { x: x2, y }], LINE_STROKE);
-    }
-
-    fn min_max_staff(scale: &RootedScale, melodies: &Vec<(Melody, Color32)>) -> (u8, u8) {
-        let mut lo = LOWEST_STAFF_PITCH;
-        let mut hi = HIGHEST_STAFF_PITCH;
-        for (melody, _) in melodies.iter() {
-            if let Some((mlo, mhi)) = melody.min_max_pitches() {
-                lo = min(lo, mlo);
-                hi = max(hi, mhi);
-            }
-        }
-        (scale.round_down(lo), scale.round_up(hi))
     }
 }
 
