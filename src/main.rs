@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
-use enum_iterator::{Sequence, all};
 use midi_fundsp::{io::Speaker, sound_builders::ProgramTable, sounds::favorites};
 use midi_melody_gui::{
     melody_renderer::MelodyRenderer,
@@ -29,24 +28,8 @@ fn main() {
     .unwrap();
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Sequence)]
-enum Mode {
-    Settings,
-    Show,
-}
-
-impl Mode {
-    fn text(&self) -> &str {
-        match self {
-            Self::Settings => "Settings",
-            Self::Show => "Display Notes",
-        }
-    }
-}
-
 struct MainApp {
     recorder: Arc<Mutex<Recorder>>,
-    mode: Mode,
     synth_sounds: ProgramTable,
     synth_sound: usize,
 }
@@ -57,20 +40,13 @@ impl eframe::App for MainApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             let heading = format!("MIDI Melody GUI ({})", self.port_name());
             ui.heading(heading);
-            self.mode_buttons(ui);
-            match self.mode {
-                Mode::Settings => {
-                    self.render_settings(ui);
-                }
-                Mode::Show => {
-                    let recorder = self.recorder.lock().unwrap();
-                    if recorder.len() > 0 {
-                        let melody = Melody::from(&recorder[recorder.len() - 1]);
-                        MelodyRenderer::render(ui, &vec![(melody, Color32::BLACK)]);
-                    }
-                    ctx.request_repaint_after_secs(FRAME_INTERVAL);
-                }
+            self.render_settings(ui);
+            let recorder = self.recorder.lock().unwrap();
+            if recorder.len() > 0 {
+                let melody = Melody::from(&recorder[recorder.len() - 1]);
+                MelodyRenderer::render(ui, &vec![(melody, Color32::BLACK)]);
             }
+            ctx.request_repaint_after_secs(FRAME_INTERVAL);
         });
     }
 }
@@ -81,7 +57,6 @@ impl MainApp {
         let synth_sounds = favorites();
         Ok(Self {
             recorder: setup_threads(synth_sounds.clone())?,
-            mode: Mode::Settings,
             synth_sounds,
             synth_sound: 0,
         })
@@ -89,14 +64,6 @@ impl MainApp {
 
     fn port_name(&self) -> String {
         self.recorder.lock().unwrap().input_port_name().to_string()
-    }
-
-    fn mode_buttons(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            for option in all::<Mode>() {
-                ui.radio_value(&mut self.mode, option, option.text());
-            }
-        });
     }
 
     fn render_settings(&mut self, ui: &mut egui::Ui) {

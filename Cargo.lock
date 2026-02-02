@@ -2038,7 +2038,6 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "eframe",
- "enum-iterator",
  "midi_fundsp",
  "midi_note_recorder",
  "midir",

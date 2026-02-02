@@ -199,10 +199,6 @@ impl MelodyRenderer {
             let num_diatonic_pitches = round_up(scale.diatonic_steps_between(lo, hi)) + 1;
             let middle_c_steps = round_up(scale.diatonic_steps_to_middle_c(hi));
             let target_height = Y_PER_PITCH * num_diatonic_pitches as f32 + BORDER_SIZE * 2.0;
-            println!(
-                "{num_diatonic_pitches} ({lo} {hi}) target: {target_height} available: {}",
-                ui.available_height()
-            );
             let height = if target_height < ui.available_height() {
                 target_height
             } else {
@@ -210,7 +206,6 @@ impl MelodyRenderer {
             };
             let size = Vec2::new(ui.available_width(), height);
             let (response, painter) = ui.allocate_painter(size, Sense::hover());
-            println!("response: {:?}", response.rect);
             let sig = KeySignature::from(&scale);
             let y_border = Y_OFFSET + response.rect.min.y;
             let y_middle_c = y_border + Y_PER_PITCH * middle_c_steps as f32;
