@@ -159,13 +159,7 @@ impl MainApp {
                 ui.label(format!("{time:.2}"));
                 ui.label(format!("{note}"));
                 ui.label(format!("{velocity}"));
-                let direction = last_pitch.map_or(MelodyDirection::Ascending, |lp| {
-                    if lp < note {
-                        MelodyDirection::Ascending
-                    } else {
-                        MelodyDirection::Descending
-                    }
-                });
+                let direction = Self::pick_direction(note, last_pitch);
                 let (name, _, accidental) = scale.matching_pitch(note, direction);
                 if let Some(accidental) = accidental {
                     let name = name.with_acc(accidental);
@@ -177,5 +171,15 @@ impl MainApp {
                 last_pitch = Some(note);
             }
         }
+    }
+
+    fn pick_direction(pitch: u8, last_pitch: Option<u8>) -> MelodyDirection {
+        last_pitch.map_or(MelodyDirection::Ascending, |lp| {
+            if lp < pitch {
+                MelodyDirection::Ascending
+            } else {
+                MelodyDirection::Descending
+            }
+        })
     }
 }
