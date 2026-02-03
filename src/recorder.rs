@@ -12,7 +12,7 @@ use std::sync::Mutex;
 use std::{sync::Arc, time::Instant};
 
 pub const NUM_CHANNELS: usize = 10;
-pub const DEFAULT_TIMEOUT: f64 = 1.0;
+pub const DEFAULT_TIMEOUT: f64 = 2.0;
 
 pub trait SynthMsgReceiver: Send {
     fn receive(&mut self, msg: SynthMsg);

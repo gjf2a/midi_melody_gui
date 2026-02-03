@@ -365,10 +365,7 @@ fn staff_position(
     let (pitch, acc) = if scale.contains(pitch) {
         (pitch, None)
     } else {
-        let (_, pitch, acc) = match direction {
-            MelodyDirection::Ascending => scale.ascending_match(pitch),
-            MelodyDirection::Descending => scale.descending_match(pitch),
-        };
+        let (_, pitch, acc) = scale.matching_pitch(pitch, direction);
         (pitch, acc)
     };
     let mut steps = round_up(scale.diatonic_steps_between(scale.middle_c(), pitch)) as i16;

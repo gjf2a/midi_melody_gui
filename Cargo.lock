@@ -2098,8 +2098,9 @@ dependencies = [
 [[package]]
 name = "music_analyzer_generator"
 version = "0.1.0"
-source = "git+https://github.com/gjf2a/music_analyzer_generator#f8f2448798f0ff9f3c76b9ffbb7ebf2a5151122f"
+source = "git+https://github.com/gjf2a/music_analyzer_generator#61be02616dae4eacc202308144772170a2a9f988"
 dependencies = [
+ "anyhow",
  "bare_metal_modulo",
  "enum-iterator",
  "hash_histogram",
