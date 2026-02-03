@@ -132,14 +132,13 @@ impl MainApp {
             let scale = melody.highest_weight_scale();
             egui::ScrollArea::vertical().show(ui, |ui| {
                 egui::Grid::new("MIDI instructions")
-                    .num_columns(5)
+                    .num_columns(4)
                     .spacing((10.0, 4.0))
                     .striped(true)
                     .show(ui, |ui| {
                         ui.label("Timestamp");
                         ui.label("Pitch");
                         ui.label("Velocity");
-                        ui.label("Duration");
                         ui.label("Note");
                         ui.end_row();
                         self.render_midi_instruction_row(ui, &scale, recording.midi_queue());
@@ -154,18 +153,12 @@ impl MainApp {
         scale: &RootedScale,
         mut msgs: VecDeque<(f64, MidiMsg)>,
     ) {
-        let mut last_time = None;
         let mut last_pitch = None;
         while let Some((time, msg)) = msgs.pop_front() {
             if let Some((note, velocity)) = note_velocity_from(&msg) {
                 ui.label(format!("{time:.2}"));
                 ui.label(format!("{note}"));
                 ui.label(format!("{velocity}"));
-                if let Some(prev) = last_time {
-                    ui.label(format!("{:.2}", time - prev));
-                } else {
-                    ui.label("");
-                }
                 let direction = last_pitch.map_or(MelodyDirection::Ascending, |lp| {
                     if lp < note {
                         MelodyDirection::Ascending
@@ -181,7 +174,6 @@ impl MainApp {
                     ui.label(format!("{name}"));
                 }
                 ui.end_row();
-                last_time = Some(time);
                 last_pitch = Some(note);
             }
         }
