@@ -141,13 +141,13 @@ impl MainApp {
                         ui.label("Velocity");
                         ui.label("Note");
                         ui.end_row();
-                        self.render_midi_instruction_row(ui, &scale, recording.midi_queue());
+                        self.render_midi_instruction_rows(ui, &scale, recording.midi_queue());
                     });
             });
         }
     }
 
-    fn render_midi_instruction_row(
+    fn render_midi_instruction_rows(
         &self,
         ui: &mut egui::Ui,
         scale: &RootedScale,
