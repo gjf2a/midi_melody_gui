@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use bare_metal_modulo::{MNum, ModNum};
 use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
@@ -10,7 +13,11 @@ use midi_melody_gui::{
     recorder::{Recorder, setup_threads},
     render_synth_sounds, setup_font,
 };
-use music_analyzer_generator::analyzer::{Melody, MelodyDirection};
+use midi_msg::MidiMsg;
+use music_analyzer_generator::{
+    analyzer::{Melody, MelodyDirection},
+    scales::RootedScale,
+};
 
 const FPS: f32 = 20.0;
 const FRAME_INTERVAL: f32 = 1.0 / FPS;
@@ -135,42 +142,48 @@ impl MainApp {
                         ui.label("Duration");
                         ui.label("Note");
                         ui.end_row();
-
-                        let mut msgs = recording.midi_queue();
-                        let mut last_time = None;
-                        let mut last_pitch = None;
-                        while let Some((time, msg)) = msgs.pop_front() {
-                            if let Some((note, velocity)) = note_velocity_from(&msg) {
-                                ui.label(format!("{time:.2}"));
-                                ui.label(format!("{note}"));
-                                ui.label(format!("{velocity}"));
-                                if let Some(prev) = last_time {
-                                    ui.label(format!("{:.2}", time - prev));
-                                } else {
-                                    ui.label("");
-                                }
-                                let direction =
-                                    last_pitch.map_or(MelodyDirection::Ascending, |lp| {
-                                        if lp < note {
-                                            MelodyDirection::Ascending
-                                        } else {
-                                            MelodyDirection::Descending
-                                        }
-                                    });
-                                let (name, _, accidental) = scale.matching_pitch(note, direction);
-                                if let Some(accidental) = accidental {
-                                    let name = name.with_acc(accidental);
-                                    ui.label(format!("{name}*"));
-                                } else {
-                                    ui.label(format!("{name}"));
-                                }
-                                ui.end_row();
-                                last_time = Some(time);
-                                last_pitch = Some(note);
-                            }
-                        }
+                        self.render_midi_instruction_row(ui, &scale, recording.midi_queue());
                     });
             });
+        }
+    }
+
+    fn render_midi_instruction_row(
+        &self,
+        ui: &mut egui::Ui,
+        scale: &RootedScale,
+        mut msgs: VecDeque<(f64, MidiMsg)>,
+    ) {
+        let mut last_time = None;
+        let mut last_pitch = None;
+        while let Some((time, msg)) = msgs.pop_front() {
+            if let Some((note, velocity)) = note_velocity_from(&msg) {
+                ui.label(format!("{time:.2}"));
+                ui.label(format!("{note}"));
+                ui.label(format!("{velocity}"));
+                if let Some(prev) = last_time {
+                    ui.label(format!("{:.2}", time - prev));
+                } else {
+                    ui.label("");
+                }
+                let direction = last_pitch.map_or(MelodyDirection::Ascending, |lp| {
+                    if lp < note {
+                        MelodyDirection::Ascending
+                    } else {
+                        MelodyDirection::Descending
+                    }
+                });
+                let (name, _, accidental) = scale.matching_pitch(note, direction);
+                if let Some(accidental) = accidental {
+                    let name = name.with_acc(accidental);
+                    ui.label(format!("{name}*"));
+                } else {
+                    ui.label(format!("{name}"));
+                }
+                ui.end_row();
+                last_time = Some(time);
+                last_pitch = Some(note);
+            }
         }
     }
 }

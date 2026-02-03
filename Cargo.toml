@@ -8,6 +8,7 @@ music_analyzer_generator = {git = "https://github.com/gjf2a/music_analyzer_gener
 midi_note_recorder = {git = "https://github.com/gjf2a/midi_note_recorder"}
 midi_fundsp = "0.7.1"
 midir = "0.10.3"
+midi-msg = "0.8.1"
 eframe = "0.33.3"
 bare_metal_modulo = "1.2.6"
 crossbeam-queue = "0.3.12"

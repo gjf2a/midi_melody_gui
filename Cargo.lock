@@ -2038,6 +2038,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "eframe",
+ "midi-msg",
  "midi_fundsp",
  "midi_note_recorder",
  "midir",
