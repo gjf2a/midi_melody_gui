@@ -159,11 +159,8 @@ impl MainApp {
                                     });
                                 let (name, _, accidental) = scale.matching_pitch(note, direction);
                                 if let Some(accidental) = accidental {
-                                    if let Some(name) = name.modified(accidental) {
-                                        ui.label(format!("{name}"));
-                                    } else {
-                                        ui.label("Undefined");
-                                    }
+                                    let name = name.with_acc(accidental);
+                                    ui.label(format!("{name}*"));
                                 } else {
                                     ui.label(format!("{name}"));
                                 }
