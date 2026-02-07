@@ -14,6 +14,7 @@ use midi_melody_gui::{
     render_synth_sounds, setup_font,
 };
 use midi_msg::MidiMsg;
+use midi_note_recorder::Recording;
 use music_analyzer_generator::{
     analyzer::{Melody, MelodyDirection},
     scales::RootedScale,
@@ -43,6 +44,7 @@ struct MainApp {
     synth_sounds: ProgramTable,
     synth_sound: usize,
     current_recording: ModNum<usize>,
+    show_note_velocity_only: bool,
 }
 
 impl eframe::App for MainApp {
@@ -71,6 +73,7 @@ impl MainApp {
             synth_sounds,
             synth_sound: 0,
             current_recording: ModNum::new(0, 1),
+            show_note_velocity_only: true,
         })
     }
 
@@ -130,25 +133,36 @@ impl MainApp {
             let recording = &recorder[self.current_recording.a()];
             let melody = Melody::from(recording);
             let scale = melody.highest_weight_scale();
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                egui::Grid::new("MIDI instructions")
-                    .num_columns(4)
-                    .spacing((10.0, 4.0))
-                    .striped(true)
-                    .show(ui, |ui| {
-                        ui.label("Timestamp");
-                        ui.label("Pitch");
-                        ui.label("Velocity");
-                        ui.label("Note");
-                        ui.end_row();
-                        self.render_midi_instruction_rows(ui, &scale, recording.midi_queue());
-                    });
+            ui.vertical(|ui| {
+                ui.radio_value(&mut self.show_note_velocity_only, true, "MIDI Note/Velocity only");
+                ui.radio_value(&mut self.show_note_velocity_only, false, "All MIDI messages");
+                if self.show_note_velocity_only {
+                    Self::midi_note_velocity_chart(ui, &scale, recording);
+                } else {
+                    Self::full_midi_msgs_chart(ui, recording);
+                }
             });
         }
     }
 
+    fn midi_note_velocity_chart(ui: &mut egui::Ui, scale: &RootedScale, recording: &Recording) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::Grid::new("MIDI instructions")
+                .num_columns(4)
+                .spacing((10.0, 4.0))
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("Timestamp");
+                    ui.label("Pitch");
+                    ui.label("Velocity");
+                    ui.label("Note");
+                    ui.end_row();
+                    Self::render_midi_instruction_rows(ui, &scale, recording.midi_queue());
+                });
+        });
+    }
+
     fn render_midi_instruction_rows(
-        &self,
         ui: &mut egui::Ui,
         scale: &RootedScale,
         mut msgs: VecDeque<(f64, MidiMsg)>,
@@ -181,5 +195,31 @@ impl MainApp {
                 MelodyDirection::Descending
             }
         })
+    }
+
+    fn full_midi_msgs_chart(ui: &mut egui::Ui, recording: &Recording) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::Grid::new("MIDI instructions")
+                .num_columns(2)
+                .spacing((10.0, 4.0))
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("Timestamp");
+                    ui.label("MIDI Message");
+                    ui.end_row();
+                    Self::render_midi_msg_rows(ui, recording.midi_queue());
+                });
+        });
+    }
+
+    fn render_midi_msg_rows(
+        ui: &mut egui::Ui,
+        mut msgs: VecDeque<(f64, MidiMsg)>,
+    ) {
+        while let Some((time, msg)) = msgs.pop_front() {
+            ui.label(format!("{time:.2}"));
+            ui.label(format!("{msg:?}"));
+            ui.end_row();
+        }
     }
 }
