@@ -134,8 +134,16 @@ impl MainApp {
             let melody = Melody::from(recording);
             let scale = melody.highest_weight_scale();
             ui.vertical(|ui| {
-                ui.radio_value(&mut self.show_note_velocity_only, true, "MIDI Note/Velocity only");
-                ui.radio_value(&mut self.show_note_velocity_only, false, "All MIDI messages");
+                ui.radio_value(
+                    &mut self.show_note_velocity_only,
+                    true,
+                    "MIDI Note/Velocity only",
+                );
+                ui.radio_value(
+                    &mut self.show_note_velocity_only,
+                    false,
+                    "All MIDI messages",
+                );
                 if self.show_note_velocity_only {
                     Self::midi_note_velocity_chart(ui, &scale, recording);
                 } else {
@@ -212,10 +220,7 @@ impl MainApp {
         });
     }
 
-    fn render_midi_msg_rows(
-        ui: &mut egui::Ui,
-        mut msgs: VecDeque<(f64, MidiMsg)>,
-    ) {
+    fn render_midi_msg_rows(ui: &mut egui::Ui, mut msgs: VecDeque<(f64, MidiMsg)>) {
         while let Some((time, msg)) = msgs.pop_front() {
             ui.label(format!("{time:.2}"));
             ui.label(format!("{msg:?}"));
