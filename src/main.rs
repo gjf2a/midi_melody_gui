@@ -4,6 +4,7 @@ use std::{
 };
 
 use bare_metal_modulo::{MNum, ModNum};
+use crossbeam_utils::atomic::AtomicCell;
 use eframe::egui::{self, Color32, Pos2, Vec2, Visuals};
 use midi_fundsp::{
     io::Speaker, note_velocity_from, sound_builders::ProgramTable, sounds::favorites,
@@ -45,6 +46,7 @@ struct MainApp {
     synth_sound: usize,
     current_recording: ModNum<usize>,
     show_note_velocity_only: bool,
+    playback_progress: Arc<AtomicCell<Option<f64>>>
 }
 
 impl eframe::App for MainApp {
@@ -74,6 +76,7 @@ impl MainApp {
             synth_sound: 0,
             current_recording: ModNum::new(0, 1),
             show_note_velocity_only: true,
+            playback_progress: Arc::new(AtomicCell::new(None)),
         })
     }
 
@@ -82,7 +85,7 @@ impl MainApp {
     }
 
     fn render_melody_choice(&mut self, ui: &mut egui::Ui) {
-        let recorder = self.recorder.lock().unwrap();
+        let mut recorder = self.recorder.lock().unwrap();
         if recorder.len() > 1 {
             if recorder.len() > self.current_recording.m() {
                 self.current_recording = ModNum::new(recorder.len() - 1, recorder.len());
@@ -100,6 +103,17 @@ impl MainApp {
                     self.current_recording += 1;
                 }
             });
+        }
+        if recorder.len() > 0 {
+            if ui.button("Playback").clicked() {
+                recorder.start_playback_thread(self.current_recording.a(), self.playback_progress.clone());
+            }
+            if ui.button("Generate variation").clicked() {
+                let melody = Melody::from(&recorder[self.current_recording.a()]);
+                if let Some(variation) = music_analyzer_generator::generator::generate_melody_from(&melody) {
+                    recorder.add_recording(variation.into());
+                }
+            }
         }
     }
 

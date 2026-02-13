@@ -131,6 +131,10 @@ impl Recorder {
         }
     }
 
+    pub fn add_recording(&mut self, recording: Recording) {
+        self.recordings.push(recording);
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -154,6 +158,27 @@ impl Recorder {
 
     pub fn actively_soloing(&self) -> bool {
         self.solo_duration.is_some()
+    }
+
+    pub fn start_playback_thread(
+        &mut self,
+        selected: usize,
+        playback_progress: Arc<AtomicCell<Option<f64>>>,
+    ) {
+        let backing = self.recordings[selected].clone();
+        self.current_start = Instant::now();
+        let outgoing = self.outgoing.clone();
+        std::thread::spawn(move || {
+            backing.playback_loop(
+                None,
+                outgoing,
+                |msg| SynthMsg {
+                    msg: msg,
+                    speaker: midi_fundsp::io::Speaker::Both,
+                },
+                playback_progress.clone(),
+            );
+        });
     }
 }
 
