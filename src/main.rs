@@ -46,7 +46,7 @@ struct MainApp {
     synth_sound: usize,
     current_recording: ModNum<usize>,
     show_note_velocity_only: bool,
-    playback_progress: Arc<AtomicCell<Option<f64>>>
+    playback_progress: Arc<AtomicCell<Option<f64>>>,
 }
 
 impl eframe::App for MainApp {
@@ -106,11 +106,16 @@ impl MainApp {
         }
         if recorder.len() > 0 {
             if ui.button("Playback").clicked() {
-                recorder.start_playback_thread(self.current_recording.a(), self.playback_progress.clone());
+                recorder.start_playback_thread(
+                    self.current_recording.a(),
+                    self.playback_progress.clone(),
+                );
             }
             if ui.button("Generate variation").clicked() {
                 let melody = Melody::from(&recorder[self.current_recording.a()]);
-                if let Some(variation) = music_analyzer_generator::generator::generate_melody_from(&melody) {
+                if let Some(variation) =
+                    music_analyzer_generator::generator::generate_melody_from(&melody)
+                {
                     recorder.add_recording(variation.into());
                 }
             }

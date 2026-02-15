@@ -2153,7 +2153,7 @@ dependencies = [
 [[package]]
 name = "music_analyzer_generator"
 version = "0.1.0"
-source = "git+https://github.com/gjf2a/music_analyzer_generator#28798c13a967f7428ef6cc3ee56c9ccd4bda9f70"
+source = "git+https://github.com/gjf2a/music_analyzer_generator#0c279a7e3cfdd3e37809e53484a9a5d493d95757"
 dependencies = [
  "anyhow",
  "bare_metal_modulo",

@@ -194,17 +194,7 @@ impl MelodyRenderer {
     pub fn render(ui: &mut Ui, melodies: &Vec<(Melody, Color32)>) {
         if let Some((lo, hi)) = Self::min_max_pitches_from(melodies) {
             let scale = melodies[0].0.highest_weight_scale();
-            let lo = min(LOWEST_STAFF_PITCH, scale.round_down(lo));
-            let hi = max(HIGHEST_STAFF_PITCH, scale.round_up(hi));
-            let num_diatonic_pitches = round_up(scale.diatonic_steps_between(lo, hi)) + 1;
-            let middle_c_steps = round_up(scale.diatonic_steps_to_middle_c(hi));
-            let target_height = Y_PER_PITCH * num_diatonic_pitches as f32 + BORDER_SIZE * 2.0;
-            let height = if target_height < ui.available_height() {
-                target_height
-            } else {
-                ui.available_height()
-            };
-            let size = Vec2::new(ui.available_width(), height);
+            let (size, middle_c_steps, hi) = Self::size_mid_c_hi(ui, lo, hi, &scale);
             let (response, painter) = ui.allocate_painter(size, Sense::hover());
             let sig = KeySignature::from(&scale);
             let y_border = Y_OFFSET + response.rect.min.y;
@@ -216,13 +206,35 @@ impl MelodyRenderer {
                 sig,
                 y_middle_c,
             };
-            let y_treble = y_border + Y_PER_PITCH * Self::space_above_staff(&renderer.scale, hi);
-            renderer.draw_staff(&painter, Clef::Treble, y_treble);
-            let y_bass = renderer.y_middle_c + renderer.staff_line_space();
-            renderer.draw_staff(&painter, Clef::Bass, y_bass);
-            for (melody, color) in melodies.iter().rev() {
-                renderer.draw_melody(&painter, melody, *color);
-            }
+            renderer.render_staves(&painter, hi, y_border);
+            renderer.render_melody(&painter, melodies);
+        }
+    }
+
+    fn size_mid_c_hi(ui: &Ui, lo: u8, hi: u8, scale: &RootedScale) -> (Vec2, u8, u8) {
+        let lo = min(LOWEST_STAFF_PITCH, scale.round_down(lo));
+        let hi = max(HIGHEST_STAFF_PITCH, scale.round_up(hi));
+        let num_diatonic_pitches = round_up(scale.diatonic_steps_between(lo, hi)) + 1;
+        let middle_c_steps = round_up(scale.diatonic_steps_to_middle_c(hi));
+        let target_height = Y_PER_PITCH * num_diatonic_pitches as f32 + BORDER_SIZE * 2.0;
+        let height = if target_height < ui.available_height() {
+            target_height
+        } else {
+            ui.available_height()
+        };
+        (Vec2::new(ui.available_width(), height), middle_c_steps, hi)
+    }
+
+    fn render_staves(&self, painter: &Painter, hi: u8, y_border: f32) {
+        let y_treble = y_border + Y_PER_PITCH * Self::space_above_staff(&self.scale, hi);
+        self.draw_staff(&painter, Clef::Treble, y_treble);
+        let y_bass = self.y_middle_c + self.staff_line_space();
+        self.draw_staff(&painter, Clef::Bass, y_bass);
+    }
+
+    fn render_melody(&self, painter: &Painter, melodies: &Vec<(Melody, Color32)>) {
+        for (melody, color) in melodies.iter().rev() {
+            self.draw_melody(&painter, melody, *color);
         }
     }
 
